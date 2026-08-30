@@ -17,13 +17,16 @@ RUN curl -fsSL "https://deb.nodesource.com/setup_${NODE_MAJOR}.x" | bash - \
     && npm --version
 
 RUN useradd -m -s /bin/bash runner
-WORKDIR /home/runner
 
+# Kept out of /home/runner so a volume mounted there cannot cover it; the
+# entrypoint seeds the volume from here on first start.
+WORKDIR /opt/actions-runner
 RUN arch="$(echo "$TARGETARCH" | sed 's/^amd64$/x64/')" \
     && curl -fsSL "https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-${arch}-${RUNNER_VERSION}.tar.gz" \
       | tar -xz \
-    && ./bin/installdependencies.sh \
-    && chown -R runner:runner /home/runner
+    && ./bin/installdependencies.sh
+
+WORKDIR /home/runner
 
 COPY entrypoint.sh /entrypoint.sh
 
