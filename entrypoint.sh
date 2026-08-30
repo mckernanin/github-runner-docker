@@ -11,6 +11,7 @@ if [ ! -f .runner ]; then
     --url "$GITHUB_URL" \
     --token "$RUNNER_TOKEN" \
     --name "${RUNNER_NAME:-$(hostname)}" \
+    --runnergroup "${RUNNER_GROUP:-Default}" \
     --labels "${RUNNER_LABELS:-docker}" \
     --work _work \
     --unattended \
