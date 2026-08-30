@@ -55,6 +55,9 @@ jobs:
             (cd node_modules/@pnpm/exe && node setup.js)
             chmod +x node_modules/@pnpm/exe/pnpm
             ./node_modules/.bin/pnpm --version
+            # rustc shells out to cc for every link, so linking must work, not just cc --version.
+            printf "int main(void){return 0;}" > t.c
+            cc t.c -o t && ./t
           '
 
       - uses: docker/build-push-action@v7

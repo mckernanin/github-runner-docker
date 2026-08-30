@@ -6,6 +6,7 @@ ARG TARGETARCH=amd64
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates curl jq git sudo unzip zip libatomic1 \
+      build-essential pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 # Node on PATH must satisfy npm 11 (^20.17 || >=22.9); 24 matches actions/setup-node's default here.
