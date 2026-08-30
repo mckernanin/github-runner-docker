@@ -60,7 +60,8 @@ jobs:
             cc t.c -o t && ./t
           '
 
-      - uses: docker/build-push-action@v7
+      - id: push
+        uses: docker/build-push-action@v7
         with:
           context: .
           platforms: linux/amd64,linux/arm64
@@ -69,5 +70,15 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository }}:latest
             ghcr.io/${{ github.repository }}:${{ steps.runner.outputs.version }}
+            ghcr.io/${{ github.repository }}:${{ github.sha }}
+          # Lets `docker inspect` on a container deployed by :latest name its commit.
+          labels: org.opencontainers.image.revision=${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - if: github.event_name != 'pull_request'
+        run: |
+          {
+            echo "    ghcr.io/${{ github.repository }}:${{ github.sha }}"
+            echo "    ghcr.io/${{ github.repository }}@${{ steps.push.outputs.digest }}"
+          } >> "$GITHUB_STEP_SUMMARY"
