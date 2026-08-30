@@ -1,0 +1,70 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        if: github.event_name != 'pull_request'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: runner
+        run: |
+          v=$(curl -fsSL https://api.github.com/repos/actions/runner/releases/latest | jq -r '.tag_name | ltrimstr("v")')
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          build-args: RUNNER_VERSION=${{ steps.runner.outputs.version }}
+          tags: gh-runner:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # pnpm/action-setup installs @pnpm/exe through npm using the PATH node,
+      # so a too-old node here breaks consumer jobs rather than this build.
+      - name: smoke test
+        run: |
+          docker run --rm --entrypoint bash gh-runner:test -c '
+            set -e
+            node --version
+            npm --version
+            cd "$(mktemp -d)"
+            npm init -y >/dev/null
+            npm install --no-audit --no-fund --ignore-scripts @pnpm/exe@latest >/dev/null
+            (cd node_modules/@pnpm/exe && node setup.js)
+            chmod +x node_modules/@pnpm/exe/pnpm
+            ./node_modules/.bin/pnpm --version
+          '
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          build-args: RUNNER_VERSION=${{ steps.runner.outputs.version }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:${{ steps.runner.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
