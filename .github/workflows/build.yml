@@ -50,10 +50,10 @@ jobs:
             node --version
             npm --version
             cd "$(mktemp -d)"
-            npm init -y >/dev/null
-            npm install --no-audit --no-fund --ignore-scripts @pnpm/exe@latest >/dev/null
-            (cd node_modules/@pnpm/exe && node setup.js)
-            chmod +x node_modules/@pnpm/exe/pnpm
+            # Let npm run the @pnpm/exe install script as action-setup does; the script
+            # name changed in pnpm 12 (setup.js -> install.js), so never call it directly.
+            echo "{\"private\":true,\"allowScripts\":{\"@pnpm/exe\":true}}" > package.json
+            npm install --no-audit --no-fund @pnpm/exe@latest >/dev/null
             ./node_modules/.bin/pnpm --version
             # rustc shells out to cc for every link, so linking must work, not just cc --version.
             printf "int main(void){return 0;}" > t.c
